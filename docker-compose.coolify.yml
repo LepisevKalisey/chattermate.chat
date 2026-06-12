@@ -18,6 +18,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend.prod
+    image: chattermate-backend
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - CORS_ORIGINS=${CORS_ORIGINS}
@@ -71,9 +72,7 @@ services:
       start_period: 300s
 
   knowledge_processor:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend.prod
+    image: chattermate-backend
     command: python -m app.workers.knowledge_processor
     environment:
       - DATABASE_URL=${DATABASE_URL}
