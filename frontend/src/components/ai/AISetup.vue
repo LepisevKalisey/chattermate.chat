@@ -67,6 +67,9 @@ const {
   error,
   providers,
   setupConfig,
+  googleModels,
+  isLoadingGoogleModels,
+  fetchGoogleModels,
   saveAISetup,
   updateAISetup,
   hasExistingConfig
@@ -106,12 +109,7 @@ const modelOptions = computed(() => {
         { value: 'o3-mini', label: 'O3 Mini' }
       ]
     case 'GOOGLE':
-      return [
-        { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
-        { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
-        { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
-        { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
-      ]
+      return googleModels.value
     default:
       return []
   }
@@ -249,6 +247,19 @@ watch(() => setupConfig.value.provider, (newProvider, oldProvider) => {
     setupConfig.value.model = ''
   }
 })
+
+let debounceTimeout: any = null
+watch(
+  [() => setupConfig.value.provider, () => setupConfig.value.apiKey],
+  ([newProvider, newApiKey]) => {
+    if (newProvider === 'google' && newApiKey && newApiKey.length > 10) {
+      if (debounceTimeout) clearTimeout(debounceTimeout)
+      debounceTimeout = setTimeout(async () => {
+        await fetchGoogleModels(newApiKey)
+      }, 500)
+    }
+  }
+)
 
 const selectTab = (tab: 'chattermate' | 'custom') => {
   if (tab === 'chattermate' && !hasEnterpriseModule) return
@@ -556,9 +567,11 @@ const chatterMateButtonText = computed(() => {
                     v-model="setupConfig.model"
                     required
                     class="form-control"
-                    :disabled="!setupConfig.provider || modelOptions.length === 0"
+                    :disabled="!setupConfig.provider || isLoadingGoogleModels || modelOptions.length === 0"
                   >
-                    <option value="" disabled>Select Model</option>
+                    <option value="" disabled>
+                      {{ isLoadingGoogleModels ? 'Loading models from Google...' : 'Select Model' }}
+                    </option>
                     <option 
                       v-for="model in modelOptions" 
                       :key="model.value" 

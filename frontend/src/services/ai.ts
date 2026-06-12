@@ -20,4 +20,10 @@ export const aiService = {
   async updateAI(config: AIConfig): Promise<void> {
     await api.put('/ai/config', config)
   },
+
+  async getGoogleModels(apiKey?: string): Promise<{ value: string, label: string }[]> {
+    const params = apiKey ? { api_key: apiKey } : {}
+    const response = await api.get('/ai/google-models', { params })
+    return response.data
+  }
 }

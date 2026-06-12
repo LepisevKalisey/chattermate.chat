@@ -15,6 +15,20 @@ export function useAISetup() {
   })
   
   const hasExistingConfig = ref(false)
+  const googleModels = ref<{ value: string, label: string }[]>([])
+  const isLoadingGoogleModels = ref(false)
+
+  const fetchGoogleModels = async (apiKey?: string) => {
+    try {
+      isLoadingGoogleModels.value = true
+      googleModels.value = await aiService.getGoogleModels(apiKey)
+    } catch (err: any) {
+      console.error('Failed to fetch Google Gemini models:', err)
+      googleModels.value = []
+    } finally {
+      isLoadingGoogleModels.value = false
+    }
+  }
 
   const providers = [
     { value: 'openai', label: 'OpenAI' },
@@ -41,6 +55,9 @@ export function useAISetup() {
         apiKey: config.api_key
       }
       hasExistingConfig.value = true
+      if (setupConfig.value.provider === 'google') {
+        await fetchGoogleModels()
+      }
     } catch (err: unknown) {
       const response = (err as { response?: { status?: number; data?: { detail?: { details?: string; error?: string } } } }).response;
       if (response?.status !== 404 && response?.data?.detail?.error !== 'AI configuration not found') {
@@ -105,6 +122,9 @@ export function useAISetup() {
     error,
     setupConfig,
     providers,
+    googleModels,
+    isLoadingGoogleModels,
+    fetchGoogleModels,
     saveAISetup,
     updateAISetup,
     loadExistingConfig,

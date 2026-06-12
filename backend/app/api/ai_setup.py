@@ -29,6 +29,9 @@ from app.models.schemas.ai_config import AIConfigCreate, AIConfigResponse, AISet
 from sqlalchemy.orm import Session
 import os
 from enum import Enum
+import httpx
+from typing import Optional
+from app.core.security import decrypt_api_key
 
 from app.models.ai_config import AIModelType
 
@@ -79,6 +82,7 @@ def check_custom_models_feature_access(current_user: User, db: Session):
 class ModelType(str, Enum):
     GROQ = "GROQ"
     OPENAI = "OPENAI"
+    GOOGLE = "GOOGLE"
     # ANTHROPIC = "ANTHROPIC"
     # OLLAMA = "OLLAMA"
     # CLAUDE = "CLAUDE"
@@ -164,7 +168,7 @@ async def setup_ai(
         try:
             # Only validate API keys for supported providers
             model_type_upper = config_data.model_type.upper()
-            if model_type_upper in ["GROQ", "OPENAI"]:
+            if model_type_upper in ["GROQ", "OPENAI", "GOOGLE"]:
                 is_valid = await ChatAgent.test_api_key(
                     api_key=config_data.api_key.get_secret_value(),
                     model_type=config_data.model_type,
@@ -226,6 +230,69 @@ async def setup_ai(
         raise HTTPException(
             status_code=500,
             detail="Failed to setup AI configuration"
+        )
+
+
+@router.get("/google-models")
+async def list_google_models(
+    api_key: Optional[str] = None,
+    current_user: User = Depends(require_permissions("manage_ai_config")),
+    db: Session = Depends(get_db)
+):
+    """List available Google Gemini models using the provided API key or the stored one"""
+    try:
+        # If API key is not provided, try to load it from the database
+        if not api_key:
+            ai_config_repo = AIConfigRepository(db)
+            ai_config = ai_config_repo.get_active_config(current_user.organization_id)
+            if ai_config and ai_config.model_type == AIModelType.GOOGLE:
+                # Decrypt the API key
+                api_key = decrypt_api_key(ai_config.encrypted_api_key)
+        
+        if not api_key:
+            raise HTTPException(
+                status_code=400,
+                detail="API key is required to list models"
+            )
+            
+        async with httpx.AsyncClient() as client:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+            response = await client.get(url, timeout=10.0)
+            
+            if response.status_code != 200:
+                logger.error(f"Google API error: {response.text}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to fetch models from Google Gemini API. Please check your API key."
+                )
+                
+            data = response.json()
+            models = data.get("models", [])
+            
+            result = []
+            for model in models:
+                # Only include models that support content generation
+                if "generateContent" in model.get("supportedGenerationMethods", []):
+                    name = model.get("name", "")
+                    # Strip 'models/' prefix
+                    model_id = name.replace("models/", "") if name.startswith("models/") else name
+                    display_name = model.get("displayName", model_id)
+                    result.append({
+                        "value": model_id,
+                        "label": display_name
+                    })
+            
+            # Sort by label / name for better UX
+            result.sort(key=lambda x: x["label"])
+            return result
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching Google models: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while fetching models: {str(e)}"
         )
 
 
@@ -322,7 +389,7 @@ async def update_ai_config(
             # For custom model, validate API key first if provided
             if config_data.api_key:
                 model_type_upper = config_data.model_type.upper()
-                if model_type_upper in ["GROQ", "OPENAI"]:
+                if model_type_upper in ["GROQ", "OPENAI", "GOOGLE"]:
                     try:
                         is_valid = await ChatAgent.test_api_key(
                             api_key=config_data.api_key.get_secret_value(),
@@ -424,6 +491,19 @@ def validate_model_selection(model_type: str, model_name: str):
                     "details": f"For OpenAI, only these models are supported: {valid_models}"
                 }
             )
+    
+    # For Google Gemini, allow any model name dynamically
+    elif model_type.upper() == "GOOGLE":
+        if not model_name:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "error": "Invalid model selection",
+                    "type": "invalid_model",
+                    "details": "Model name cannot be empty for Google Gemini"
+                }
+            )
+        return True
     
     # Other providers are not supported for now
     else:
