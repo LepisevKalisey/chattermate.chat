@@ -13,6 +13,8 @@ services:
     networks:
       - chattermate-network
     restart: unless-stopped
+    expose:
+      - "80"
 
   backend:
     build:
@@ -61,6 +63,8 @@ services:
     networks:
       - chattermate-network
     restart: unless-stopped
+    expose:
+      - "8000"
     volumes:
       - backend_data:/app/uploads
       - temp_data:/app/temp
