@@ -105,7 +105,7 @@ services:
       - EMBEDDING_SINGLE_THREADED=true
       - EMBEDDING_SEQUENTIAL_FALLBACK=true
     depends_on:
-      db:
+      backend:
         condition: service_healthy
       redis:
         condition: service_healthy

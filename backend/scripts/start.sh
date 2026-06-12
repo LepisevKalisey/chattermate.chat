@@ -58,7 +58,7 @@ echo "Running database migrations..."
 alembic upgrade head
 
 # Use only 2 workers to reduce resource usage and database connection issues
-WORKERS=1
+WORKERS=${WORKERS:-1}
 
 # Start the application with Gunicorn
 echo "Starting FastAPI application with Gunicorn ($WORKERS workers)..."
