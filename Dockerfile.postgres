@@ -1,18 +1,4 @@
-FROM postgres:16
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    git \
-    postgresql-server-dev-16 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install pg_vector extension with compatibility fixes for ARM64
-RUN git clone https://github.com/pgvector/pgvector.git && \
-    cd pgvector && \
-    git checkout v0.5.1 && \
-    make OPTFLAGS="" && \
-    make install
+FROM pgvector/pgvector:pg16
 
 # Add initialization scripts
 COPY ./backend/scripts/init-vector.sql /docker-entrypoint-initdb.d/
