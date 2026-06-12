@@ -3,8 +3,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend.prod
-    ports:
-      - "8080:80"
     environment:
       - VITE_API_URL=${VITE_API_URL}
       - VITE_WS_URL=${VITE_WS_URL}
