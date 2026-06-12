@@ -105,6 +105,13 @@ const modelOptions = computed(() => {
         { value: 'o1-mini', label: 'O1 Mini' },
         { value: 'o3-mini', label: 'O3 Mini' }
       ]
+    case 'GOOGLE':
+      return [
+        { value: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
+        { value: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
+        { value: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
+        { value: 'gemini-2.5-flash', label: 'Gemini 2.5 Flash' }
+      ]
     default:
       return []
   }
