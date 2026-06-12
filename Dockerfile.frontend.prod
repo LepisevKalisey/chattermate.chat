@@ -31,6 +31,9 @@ RUN npm run build-only && \
 # Production stage
 FROM nginx:alpine
 
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 # Remove default nginx static assets
 RUN rm -rf /usr/share/nginx/html/*
 
