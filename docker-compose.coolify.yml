@@ -40,6 +40,8 @@ services:
       - SENTENCE_TRANSFORMERS_HOME=/app/.cache/huggingface/sentence_transformers
       - HF_HUB_CACHE=/app/.cache/huggingface/hub
       - HF_HUB_DISABLE_TELEMETRY=1
+      # FastEmbed configuration
+      - FASTEMBED_CACHE_DIR=/app/.cache/huggingface/fastembed
       # PyTorch configuration
       - TORCH_HOME=/app/.cache/torch
       - PYTORCH_TRANSFORMERS_CACHE=/app/.cache/pytorch_transformers
@@ -94,6 +96,8 @@ services:
       - SENTENCE_TRANSFORMERS_HOME=/app/.cache/huggingface/sentence_transformers
       - HF_HUB_CACHE=/app/.cache/huggingface/hub
       - HF_HUB_DISABLE_TELEMETRY=1
+      # FastEmbed configuration
+      - FASTEMBED_CACHE_DIR=/app/.cache/huggingface/fastembed
       # PyTorch configuration
       - TORCH_HOME=/app/.cache/torch
       - PYTORCH_TRANSFORMERS_CACHE=/app/.cache/pytorch_transformers

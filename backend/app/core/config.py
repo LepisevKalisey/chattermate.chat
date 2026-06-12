@@ -71,6 +71,18 @@ class Settings(BaseSettings):
             # Fallback: comma-separated string
             return [origin.strip() for origin in v.split(",") if origin.strip()]
         return DEFAULT_CORS
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def validate_database_url(cls, v):
+        if isinstance(v, str):
+            v = v.strip()
+            # Replace postgresql:// with postgresql+psycopg:// for psycopg v3 compatibility
+            if v.startswith("postgresql://"):
+                v = "postgresql+psycopg://" + v[13:]
+            elif v.startswith("postgres://"):
+                v = "postgresql+psycopg://" + v[11:]
+        return v
     
 
     # Firebase config

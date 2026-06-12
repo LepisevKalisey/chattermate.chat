@@ -13,7 +13,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Ensure proper permissions
-GRANT USAGE ON SCHEMA ai TO postgres;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ai TO postgres;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ai TO postgres; 
+-- Ensure proper permissions (only if role 'postgres' exists, otherwise owner has them anyway)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'postgres') THEN
+        EXECUTE 'GRANT USAGE ON SCHEMA ai TO postgres';
+        EXECUTE 'GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ai TO postgres';
+        EXECUTE 'GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ai TO postgres';
+    END IF;
+END
+$$; 

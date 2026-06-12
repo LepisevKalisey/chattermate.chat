@@ -7,3 +7,4 @@
 | Путь к файлу | Заголовок | Назначение | Статус | Связанные документы |
 |--------------|-----------|------------|--------|---------------------|
 | [docs/06_delivery/01_coolify-deployment-guide.md](../06_delivery/01_coolify-deployment-guide.md) | Руководство по развертыванию на Coolify | Подробная инструкция по настройке и развертыванию ChatterMate на серверах Coolify | Активен | [docker-compose.coolify.yml](../../docker-compose.coolify.yml) |
+| [docs/06_delivery/02_premortem-analysis.md](../06_delivery/02_premortem-analysis.md) | Premortem-анализ развертывания | Анализ рисков развертывания, потенциальных причин сбоев и мер по их предотвращению | Активен | [docker-compose.coolify.yml](../../docker-compose.coolify.yml), [config.py](../../backend/app/core/config.py) |
