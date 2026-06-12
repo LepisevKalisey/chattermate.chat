@@ -20,8 +20,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.backend.prod
-    ports:
-      - "8000:8000"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - CORS_ORIGINS=${CORS_ORIGINS}
