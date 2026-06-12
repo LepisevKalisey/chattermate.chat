@@ -2,14 +2,12 @@ services:
   frontend:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
+      dockerfile: Dockerfile.frontend.coolify
+      args:
+        VITE_API_URL: ${VITE_API_URL}
+        VITE_WS_URL: ${VITE_WS_URL}
+        VITE_WIDGET_URL: ${VITE_WIDGET_URL}
     restart: unless-stopped
-    environment:
-      VITE_API_URL: ${VITE_API_URL}
-      VITE_WS_URL: ${VITE_WS_URL}
-      VITE_WIDGET_URL: ${VITE_WIDGET_URL}
-      NODE_ENV: production
-      HOST: 0.0.0.0
     depends_on:
       backend:
         condition: service_healthy
@@ -17,7 +15,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.backend.coolify
     restart: unless-stopped
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
@@ -58,11 +56,6 @@ services:
       EMBEDDING_SEQUENTIAL_FALLBACK: "true"
 
       S3_FILE_STORAGE: "false"
-      S3_BUCKET: chattermate-uploads
-      S3_REGION: us-east-1
-      AWS_ACCESS_KEY_ID: ""
-      AWS_SECRET_ACCESS_KEY: ""
-
       VERIFY_SSL_CERTIFICATES: "true"
 
     depends_on:
@@ -88,15 +81,13 @@ services:
   knowledge_processor:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.backend.coolify
     restart: unless-stopped
     command: python -m app.workers.knowledge_processor
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
-
       REDIS_ENABLED: "true"
       REDIS_URL: redis://redis:6379/0
-
       ENVIRONMENT: production
       LOG_LEVEL: info
       PYTHONUNBUFFERED: "1"
