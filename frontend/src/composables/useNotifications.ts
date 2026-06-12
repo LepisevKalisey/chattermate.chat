@@ -1,7 +1,7 @@
 import { onMounted, ref } from 'vue'
 import { getMessaging, onMessage, type MessagePayload } from 'firebase/messaging'
 import { toast } from 'vue-sonner'
-import { requestNotificationPermission } from '@/services/firebase'
+import { requestNotificationPermission, isFirebaseSupported } from '@/services/firebase'
 import mitt from '@/utils/emitter'
 
 // Match backend NotificationType enum
@@ -81,6 +81,11 @@ export function useNotifications() {
   }
 
   const initializeNotifications = async () => {
+    if (!isFirebaseSupported()) {
+      console.info('Firebase not configured, skipping notification initialization.')
+      return
+    }
+
     try {
       await requestNotificationPermission()
       hasPermission.value = Notification.permission === 'granted'

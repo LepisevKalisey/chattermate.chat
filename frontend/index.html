@@ -7,11 +7,27 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChatterMate - Setup</title>
-  <meta name="shopify-api-key" content="<%= VITE_SHOPIFY_API_KEY %>" />
-  <!-- Shopify App Bridge - must be first script tag, no async/defer -->
-  <!-- Shopify Polaris Web Components -->
-  <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
-  <script src="https://cdn.shopify.com/shopifycloud/polaris.js"></script>
+  <!-- Load Shopify App Bridge & Polaris dynamically only if in Shopify context to avoid console crashes in standalone mode -->
+  <script>
+    (function() {
+      var urlParams = new URLSearchParams(window.location.search);
+      var isShopify = urlParams.has('shop') || urlParams.has('host') || urlParams.has('hmac');
+      if (isShopify) {
+        var meta = document.createElement('meta');
+        meta.name = 'shopify-api-key';
+        meta.content = '<%= VITE_SHOPIFY_API_KEY %>';
+        document.head.appendChild(meta);
+
+        var scriptAB = document.createElement('script');
+        scriptAB.src = 'https://cdn.shopify.com/shopifycloud/app-bridge.js';
+        document.head.appendChild(scriptAB);
+
+        var scriptPolaris = document.createElement('script');
+        scriptPolaris.src = 'https://cdn.shopify.com/shopifycloud/polaris.js';
+        document.head.appendChild(scriptPolaris);
+      }
+    })();
+  </script>
 </head>
 
 <body>
