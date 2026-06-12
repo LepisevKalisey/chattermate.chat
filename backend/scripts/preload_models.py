@@ -89,6 +89,12 @@ def preload_agno_embedder():
 
 def main():
     """Main function to preload all models"""
+    # Check if we are using external models
+    embedding_provider = os.getenv("EMBEDDING_PROVIDER", "fastembed")
+    if embedding_provider.lower() in ("openai", "external"):
+        logger.info(f"Skipping model preloading because EMBEDDING_PROVIDER={embedding_provider} uses external API models.")
+        return 0
+
     logger.info("Starting model preloading process...")
     
     success = True

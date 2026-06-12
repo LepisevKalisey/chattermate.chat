@@ -27,7 +27,6 @@ from app.repositories.ai_config import AIConfigRepository
 from app.core.security import decrypt_api_key
 from agno.knowledge.agent import AgentKnowledge
 from agno.vectordb.pgvector import PgVector, SearchType
-from agno.embedder.fastembed import FastEmbedEmbedder
 from uuid import UUID
 import os
 
@@ -73,10 +72,27 @@ class KnowledgeSearchByAgent(Toolkit):
                 if self.agent_knowledge is None:
                     # Use the first knowledge source's table and schema since they should all be in the same table
                     source = knowledge_sources[0]
-                    embedder = FastEmbedEmbedder(
-                         # Use configurable model ID from settings
-                    )
-                    # Updated dimensions for the model (all-MiniLM-L6-v2 uses 384 dimensions)
+                    
+                    if settings.EMBEDDING_PROVIDER == "openai":
+                        from agno.embedder.openai import OpenAIEmbedder
+                        api_key = os.getenv("OPENAI_API_KEY")
+                        if api_key:
+                            logger.info(f"Using OpenAIEmbedder with model {settings.EMBEDDING_MODEL} for agent search")
+                            embedder = OpenAIEmbedder(
+                                id=settings.EMBEDDING_MODEL,
+                                api_key=api_key
+                            )
+                        else:
+                            logger.warning("OpenAI API key not found for search. Falling back to FastEmbed.")
+                            from agno.embedder.fastembed import FastEmbedEmbedder
+                            embedder = FastEmbedEmbedder(
+                                id=settings.FASTEMBED_MODEL
+                            )
+                    else:
+                        from agno.embedder.fastembed import FastEmbedEmbedder
+                        embedder = FastEmbedEmbedder(
+                            id=settings.FASTEMBED_MODEL
+                        )
                     
                     # Initialize vector db with simpler search type to avoid connection issues
                     vector_db = PgVector(

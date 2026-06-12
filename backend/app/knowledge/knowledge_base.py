@@ -41,7 +41,6 @@ import requests
 import asyncio
 from urllib.parse import urlparse
 from uuid import UUID
-from agno.embedder.fastembed import FastEmbedEmbedder
 
 # Try to import enterprise modules
 try:
@@ -67,10 +66,34 @@ class KnowledgeManager:
         embedder = None
         table_name = f"d_{org_id}"
         
-        # Use FastEmbedEmbedder instead of SentenceTransformerEmbedder
-        embedder = FastEmbedEmbedder(
-            id=settings.FASTEMBED_MODEL
-        )
+        if settings.EMBEDDING_PROVIDER == "openai":
+            from agno.embedder.openai import OpenAIEmbedder
+            from app.core.security import decrypt_api_key
+            api_key = os.getenv("OPENAI_API_KEY")
+            if ai_config and ai_config.encrypted_api_key:
+                try:
+                    api_key = decrypt_api_key(ai_config.encrypted_api_key)
+                except Exception as dec_err:
+                    logger.error(f"Failed to decrypt API key for embedding: {str(dec_err)}")
+            
+            if api_key:
+                logger.info(f"Using OpenAIEmbedder with model {settings.EMBEDDING_MODEL} for org {org_id}")
+                embedder = OpenAIEmbedder(
+                    id=settings.EMBEDDING_MODEL,
+                    api_key=api_key
+                )
+            else:
+                logger.warning(f"OpenAI API key not found for org {org_id}. Falling back to FastEmbed.")
+                from agno.embedder.fastembed import FastEmbedEmbedder
+                embedder = FastEmbedEmbedder(
+                    id=settings.FASTEMBED_MODEL
+                )
+        else:
+            # Use FastEmbedEmbedder instead of SentenceTransformerEmbedder
+            from agno.embedder.fastembed import FastEmbedEmbedder
+            embedder = FastEmbedEmbedder(
+                id=settings.FASTEMBED_MODEL
+            )
         
         # Dimensions will be automatically set by the model
 
