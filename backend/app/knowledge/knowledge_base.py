@@ -70,20 +70,71 @@ class KnowledgeManager:
             from agno.embedder.openai import OpenAIEmbedder
             from app.core.security import decrypt_api_key
             api_key = os.getenv("OPENAI_API_KEY")
-            if ai_config and ai_config.encrypted_api_key:
-                try:
-                    api_key = decrypt_api_key(ai_config.encrypted_api_key)
-                except Exception as dec_err:
-                    logger.error(f"Failed to decrypt API key for embedding: {str(dec_err)}")
+            if not api_key:
+                with SessionLocal() as db:
+                    from app.models.ai_config import AIConfig
+                    ai_config = db.query(AIConfig).filter(
+                        AIConfig.organization_id == org_id,
+                        AIConfig.is_active == True
+                    ).first()
+                    if not ai_config or ai_config.model_type != "OPENAI":
+                        ai_config = db.query(AIConfig).filter(
+                            AIConfig.organization_id == org_id,
+                            AIConfig.model_type == "OPENAI"
+                        ).order_by(AIConfig.is_active.desc(), AIConfig.created_at.desc()).first()
+                    
+                    if ai_config and ai_config.encrypted_api_key:
+                        try:
+                            api_key = decrypt_api_key(ai_config.encrypted_api_key)
+                        except Exception as dec_err:
+                            logger.error(f"Failed to decrypt OpenAI API key: {str(dec_err)}")
             
             if api_key:
-                logger.info(f"Using OpenAIEmbedder with model {settings.EMBEDDING_MODEL} for org {org_id}")
+                model_name = settings.EMBEDDING_MODEL if settings.EMBEDDING_MODEL != "models/text-embedding-004" else "text-embedding-3-small"
+                logger.info(f"Using OpenAIEmbedder with model {model_name} for org {org_id}")
                 embedder = OpenAIEmbedder(
-                    id=settings.EMBEDDING_MODEL,
+                    id=model_name,
                     api_key=api_key
                 )
             else:
                 logger.warning(f"OpenAI API key not found for org {org_id}. Falling back to FastEmbed.")
+                from agno.embedder.fastembed import FastEmbedEmbedder
+                embedder = FastEmbedEmbedder(
+                    id=settings.FASTEMBED_MODEL
+                )
+        elif settings.EMBEDDING_PROVIDER in ("google", "gemini"):
+            from agno.embedder.google import GeminiEmbedder
+            from app.core.security import decrypt_api_key
+            api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+            if not api_key:
+                with SessionLocal() as db:
+                    from app.models.ai_config import AIConfig
+                    ai_config = db.query(AIConfig).filter(
+                        AIConfig.organization_id == org_id,
+                        AIConfig.is_active == True
+                    ).first()
+                    if not ai_config or ai_config.model_type != "GOOGLE":
+                        ai_config = db.query(AIConfig).filter(
+                            AIConfig.organization_id == org_id,
+                            AIConfig.model_type == "GOOGLE"
+                        ).order_by(AIConfig.is_active.desc(), AIConfig.created_at.desc()).first()
+                    
+                    if ai_config and ai_config.encrypted_api_key:
+                        try:
+                            api_key = decrypt_api_key(ai_config.encrypted_api_key)
+                        except Exception as dec_err:
+                            logger.error(f"Failed to decrypt Google API key: {str(dec_err)}")
+            
+            if api_key:
+                model_name = settings.EMBEDDING_MODEL if settings.EMBEDDING_MODEL != "text-embedding-3-small" else "models/text-embedding-004"
+                logger.info(f"Using GeminiEmbedder with model {model_name} for org {org_id}")
+                os.environ["GOOGLE_API_KEY"] = api_key
+                embedder = GeminiEmbedder(
+                    id=model_name,
+                    api_key=api_key
+                )
+            else:
+                logger.warning(f"Google API key not found for org {org_id}. Falling back to FastEmbed.")
                 from agno.embedder.fastembed import FastEmbedEmbedder
                 embedder = FastEmbedEmbedder(
                     id=settings.FASTEMBED_MODEL

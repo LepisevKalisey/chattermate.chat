@@ -77,13 +77,31 @@ class KnowledgeSearchByAgent(Toolkit):
                         from agno.embedder.openai import OpenAIEmbedder
                         api_key = os.getenv("OPENAI_API_KEY")
                         if api_key:
-                            logger.info(f"Using OpenAIEmbedder with model {settings.EMBEDDING_MODEL} for agent search")
+                            model_name = settings.EMBEDDING_MODEL if settings.EMBEDDING_MODEL != "models/text-embedding-004" else "text-embedding-3-small"
+                            logger.info(f"Using OpenAIEmbedder with model {model_name} for agent search")
                             embedder = OpenAIEmbedder(
-                                id=settings.EMBEDDING_MODEL,
+                                id=model_name,
                                 api_key=api_key
                             )
                         else:
                             logger.warning("OpenAI API key not found for search. Falling back to FastEmbed.")
+                            from agno.embedder.fastembed import FastEmbedEmbedder
+                            embedder = FastEmbedEmbedder(
+                                id=settings.FASTEMBED_MODEL
+                            )
+                    elif settings.EMBEDDING_PROVIDER in ("google", "gemini"):
+                        from agno.embedder.google import GeminiEmbedder
+                        api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+                        if api_key:
+                            model_name = settings.EMBEDDING_MODEL if settings.EMBEDDING_MODEL != "text-embedding-3-small" else "models/text-embedding-004"
+                            logger.info(f"Using GeminiEmbedder with model {model_name} for agent search")
+                            os.environ["GOOGLE_API_KEY"] = api_key
+                            embedder = GeminiEmbedder(
+                                id=model_name,
+                                api_key=api_key
+                            )
+                        else:
+                            logger.warning("Google API key not found for search. Falling back to FastEmbed.")
                             from agno.embedder.fastembed import FastEmbedEmbedder
                             embedder = FastEmbedEmbedder(
                                 id=settings.FASTEMBED_MODEL

@@ -157,8 +157,8 @@ class Settings(BaseSettings):
     FASTEMBED_MODEL: str = os.getenv("FASTEMBED_MODEL", "BAAI/bge-small-en-v1.5")
     
     # Global Embedding Provider Configuration
-    EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "fastembed")  # "fastembed" or "openai"
-    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")  # e.g., "text-embedding-3-small" for OpenAI
+    EMBEDDING_PROVIDER: str = os.getenv("EMBEDDING_PROVIDER", "fastembed")  # "fastembed", "openai", or "google"
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")  # e.g., "text-embedding-3-small" or "models/text-embedding-004"
     
     # Embedding Optimization Configuration
     ENABLE_IMMEDIATE_EMBEDDING: bool = os.getenv("ENABLE_IMMEDIATE_EMBEDDING", "true").lower() == "true"
