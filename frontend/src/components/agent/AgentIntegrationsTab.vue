@@ -29,6 +29,12 @@ import {
   type SlackChannel,
   type AgentSlackConfig
 } from '@/services/slack'
+import {
+  connectTelegramBot,
+  getTelegramStatus,
+  disconnectTelegramBot,
+  type TelegramConfig
+} from '@/services/telegram'
 
 interface JiraProject {
   id: string;
@@ -127,6 +133,15 @@ const newSlackChannel = ref({
   respond_to_mentions: true,
   respond_to_commands: true
 })
+
+// Local state for Telegram integration
+const telegramLoading = ref(true)
+const telegramConnected = ref(false)
+const telegramConfigs = ref<TelegramConfig[]>([])
+const telegramBotToken = ref('')
+const telegramConnecting = ref(false)
+const telegramError = ref('')
+const showTelegramForm = ref(false)
 
 const emit = defineEmits([
   'toggle-create-ticket',
@@ -391,11 +406,59 @@ const availableSlackChannels = computed(() => {
   return slackChannels.value.filter(ch => ch.is_member && !configuredIds.includes(ch.id))
 })
 
+// === Telegram Integration Functions ===
+const fetchTelegramStatus = async () => {
+  try {
+    telegramLoading.value = true
+    const data = await getTelegramStatus()
+    telegramConnected.value = data.connected
+    telegramConfigs.value = data.configs
+  } catch (error) {
+    console.error('Error checking Telegram connection:', error)
+    telegramConnected.value = false
+  } finally {
+    telegramLoading.value = false
+  }
+}
+
+const connectTelegram = async () => {
+  if (!telegramBotToken.value.trim()) {
+    telegramError.value = 'Please enter a bot token'
+    return
+  }
+  try {
+    telegramConnecting.value = true
+    telegramError.value = ''
+    await connectTelegramBot(props.agentId, telegramBotToken.value.trim())
+    telegramBotToken.value = ''
+    showTelegramForm.value = false
+    await fetchTelegramStatus()
+  } catch (error: any) {
+    console.error('Error connecting Telegram bot:', error)
+    telegramError.value = error.response?.data?.detail || 'Failed to connect Telegram bot'
+  } finally {
+    telegramConnecting.value = false
+  }
+}
+
+const disconnectTelegram = async (configId: number) => {
+  if (!confirm('Are you sure you want to disconnect this Telegram bot?')) return
+  try {
+    telegramError.value = ''
+    await disconnectTelegramBot(configId)
+    await fetchTelegramStatus()
+  } catch (error: any) {
+    console.error('Error disconnecting Telegram bot:', error)
+    telegramError.value = error.response?.data?.detail || 'Failed to disconnect Telegram bot'
+  }
+}
+
 // Fetch connection status on component mount
 onMounted(async () => {
   await Promise.all([
     fetchShopifyStatus(),
-    fetchSlackStatus()
+    fetchSlackStatus(),
+    fetchTelegramStatus()
   ])
 })
 </script>
@@ -688,6 +751,78 @@ onMounted(async () => {
               </button>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Telegram Integration -->
+      <div class="integration-section">
+        <h4 class="integration-title">Telegram Integration</h4>
+        <div class="ticket-toggle">
+          <div class="toggle-header">
+            <h5 class="toggle-title">Connect Telegram Bot</h5>
+          </div>
+          <p class="helper-text">Connect a Telegram bot to this agent. Create a bot via <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a> and paste the token below.</p>
+          
+          <!-- Loading state -->
+          <div v-if="telegramLoading" class="jira-status loading">
+            Checking Telegram connection...
+          </div>
+
+          <template v-else>
+            <!-- Connected bots list -->
+            <div v-if="telegramConfigs.length > 0" class="slack-configs-list">
+              <div v-for="config in telegramConfigs" :key="config.id" class="slack-config-item">
+                <div class="config-info">
+                  <span class="channel-name">@{{ config.bot_username }}</span>
+                  <span v-if="config.bot_display_name" class="config-detail">{{ config.bot_display_name }}</span>
+                  <span class="config-status" :class="{ active: config.is_active }">{{ config.is_active ? 'Active' : 'Inactive' }}</span>
+                </div>
+                <button class="delete-config-btn" @click="disconnectTelegram(config.id)" title="Disconnect bot">
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <!-- Error display -->
+            <div v-if="telegramError" class="slack-error">
+              {{ telegramError }}
+            </div>
+
+            <!-- Connect form -->
+            <div v-if="showTelegramForm" class="slack-channel-form">
+              <div class="form-group">
+                <label for="telegram-token">Bot Token</label>
+                <input
+                  id="telegram-token"
+                  v-model="telegramBotToken"
+                  type="password"
+                  placeholder="Paste your bot token from @BotFather"
+                  class="form-input"
+                />
+              </div>
+              <div class="form-actions">
+                <button
+                  class="save-config-btn"
+                  @click="connectTelegram"
+                  :disabled="telegramConnecting || !telegramBotToken.trim()"
+                >
+                  {{ telegramConnecting ? 'Connecting...' : 'Connect Bot' }}
+                </button>
+                <button class="cancel-btn" @click="showTelegramForm = false; telegramError = ''">
+                  Cancel
+                </button>
+              </div>
+            </div>
+
+            <!-- Add bot button -->
+            <button
+              v-if="!showTelegramForm"
+              class="add-channel-btn"
+              @click="showTelegramForm = true"
+            >
+              + Connect Telegram Bot
+            </button>
+          </template>
         </div>
       </div>
     </section>

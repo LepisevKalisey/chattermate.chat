@@ -73,6 +73,7 @@ class Organization(Base):
     slack_workspace_configs = relationship("SlackWorkspaceConfig", back_populates="organization", cascade="all, delete-orphan")
     agent_slack_configs = relationship("AgentSlackConfig", back_populates="organization", cascade="all, delete-orphan")
     slack_conversations = relationship("SlackConversation", back_populates="organization", cascade="all, delete-orphan")
+    telegram_bot_configs = relationship("TelegramBotConfig", back_populates="organization", cascade="all, delete-orphan")
     
     class Config:
         orm_mode = True

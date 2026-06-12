@@ -153,6 +153,11 @@ class Agent(Base):
         back_populates="agent",
         cascade="all, delete-orphan"
     )
+    telegram_configs = relationship(
+        "TelegramBotConfig",
+        back_populates="agent",
+        cascade="all, delete-orphan"
+    )
 
     @property
     def instructions(self):
