@@ -31,7 +31,6 @@ test.db
 *.db.tar.xz
 *.db.tar.lzma
 
-docs/
 .env.prod
 .env.dev
 backend/app/enterprise/

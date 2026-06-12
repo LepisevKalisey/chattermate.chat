@@ -4,9 +4,35 @@ set -e
 # Set environment variable to prevent tokenizer deadlock warnings
 export TOKENIZERS_PARALLELISM=false
 
-# Wait for PostgreSQL to be ready
-echo "Waiting for PostgreSQL..."
-while ! nc -z db 5432; do
+# Wait for PostgreSQL to be ready (parsing host and port dynamically from DATABASE_URL)
+DB_HOST="db"
+DB_PORT="5432"
+
+if [ -n "$DATABASE_URL" ]; then
+    # Remove everything up to //
+    TEMP="${DATABASE_URL#*//}"
+    # Remove path (everything after first /)
+    TEMP="${TEMP%%/*}"
+    # Extract host:port (everything after @ if present)
+    case "$TEMP" in
+        *@*) HOST_PORT="${TEMP#*@}" ;;
+        *) HOST_PORT="$TEMP" ;;
+    esac
+    # Extract host and port
+    case "$HOST_PORT" in
+        *:*)
+            DB_HOST="${HOST_PORT%%:*}"
+            DB_PORT="${HOST_PORT##*:}"
+            ;;
+        *)
+            DB_HOST="$HOST_PORT"
+            DB_PORT="5432"
+            ;;
+    esac
+fi
+
+echo "Waiting for PostgreSQL at $DB_HOST:$DB_PORT..."
+while ! nc -z "$DB_HOST" "$DB_PORT"; do
   sleep 0.1
 done
 echo "PostgreSQL is ready!"
